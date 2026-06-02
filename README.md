@@ -76,6 +76,7 @@ The core insight is that a folder and a file are the same component with differe
 - If the node is a **folder** — it renders a clickable row, then maps over `node.children` and renders a `TreeNode` for each child. Those children do the same thing. This is the recursion.
 - If the node is a **file** — it renders a leaf row with no children. The recursion stops here.
   TreeNode (folder)
+  
   └── TreeNode (folder)
   
   └── TreeNode (file) ← recursion stops
