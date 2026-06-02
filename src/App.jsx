@@ -1,70 +1,116 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import AppHeader from './components/AppHeader'
 import TreeView from './components/TreeView'
 import PropertiesPanel from './components/PropertiesPanel'
+import useKeyboardNavigation from './hooks/useKeyboardNavigation'
 import data from './data/data.json'
 import './App.css'
 
 // ─── BREADCRUMB HELPER ────────────────────────────────────────────────────────
-// This function takes the full data array and a target file id,
-// and returns the path to that file as an array of names.
+// Walks the tree recursively to find the full path to a node by its id.
+// Returns an array of names from root to the target node.
 // Example: ["SecureVault", "01_Legal_Department", "Active_Cases", "report.pdf"]
-//
-// How it works: it's a recursive search through the tree.
-// It goes into each folder, looks for the target id,
-// and if it finds it, it builds the path on the way back out.
 
 function findPath(nodes, targetId, path = ['SecureVault']) {
   for (const node of nodes) {
-    // Build the current path by adding this node's name
     const currentPath = [...path, node.name]
-
-    // If this node is the one we're looking for, we're done
-    if (node.id === targetId) {
-      return currentPath
-    }
-
-    // If it's a folder, search inside it
+    if (node.id === targetId) return currentPath
     if (node.type === 'folder' && node.children) {
       const result = findPath(node.children, targetId, currentPath)
-      // If the search found something, pass it back up
       if (result) return result
     }
   }
-
-  // Nothing found in this branch
   return null
 }
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
-// App is the top level component — the single source of truth.
-// All shared state lives here and is passed down as props.
-// No component below App needs to know about any other component.
+// ─── VISIBLE NODES HELPER ─────────────────────────────────────────────────────
+// Builds a flat list of every node the user can currently see in the tree.
+// A node is visible if all its parent folders are expanded.
+// The keyboard hook uses this list to know what Up/Down should move between.
 
+function getVisibleNodes(nodes, expandedIds, searchQuery) {
+  const result = []
+
+  for (const node of nodes) {
+    // For search — only include files that match, and folders that
+    // contain matching descendants
+    if (searchQuery) {
+      const matchesSearch = (n) => {
+        if (n.type === 'file') {
+          return n.name.toLowerCase().includes(searchQuery.toLowerCase())
+        }
+        return n.children?.some(child => matchesSearch(child))
+      }
+      if (!matchesSearch(node)) continue
+    }
+
+    result.push(node)
+
+    // If this folder is expanded, include its children too
+    if (node.type === 'folder' && node.children) {
+      const isExpanded = expandedIds.has(node.id) ||
+        (searchQuery && node.children.some(child => {
+          const matchesSearch = (n) => {
+            if (n.type === 'file') return n.name.toLowerCase().includes(searchQuery.toLowerCase())
+            return n.children?.some(c => matchesSearch(c))
+          }
+          return matchesSearch(child)
+        }))
+
+      if (isExpanded) {
+        const childVisible = getVisibleNodes(node.children, expandedIds, searchQuery)
+        result.push(...childVisible)
+      }
+    }
+  }
+
+  return result
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
 function App() {
 
-  // The currently selected file node (full object from data.json), or null
+  // The currently selected file node, or null if nothing selected
   const [selectedFile, setSelectedFile] = useState(null)
 
-  // The current search string — empty string means no search active
+  // Current search string — empty means no search active
   const [searchQuery, setSearchQuery] = useState('')
 
-  // When a file is clicked in the tree, this function runs.
-  // It updates selectedFile so PropertiesPanel knows what to show.
+  // Set of folder ids that are currently expanded.
+  // Using a Set because checking membership (has) is O(1) — very fast.
+  const [expandedIds, setExpandedIds] = useState(new Set())
+
+  // The id of the node currently focused by keyboard navigation
+  const [focusedId, setFocusedId] = useState(null)
+
+  // Build the flat list of visible nodes for the keyboard hook.
+  // useMemo means this only recalculates when expandedIds or searchQuery change
+  // — not on every single render.
+  const visibleNodes = useMemo(() =>
+    getVisibleNodes(data, expandedIds, searchQuery),
+    [expandedIds, searchQuery]
+  )
+
   const handleSelectFile = useCallback((node) => {
     setSelectedFile(node)
+    setFocusedId(node.id)
   }, [])
 
-  // When the user types in the search bar, this updates searchQuery.
-  // That value flows down to TreeView → TreeNode, which uses it
-  // to filter files and auto-expand matching folders.
   const handleSearch = useCallback((query) => {
     setSearchQuery(query)
   }, [])
 
-  // Build the breadcrumb path for the selected file.
-  // findPath walks the tree and returns the array of names.
-  // If no file is selected, breadcrumb is an empty array.
+  // Wire up keyboard navigation using our custom hook
+  useKeyboardNavigation({
+    visibleNodes,
+    focusedId,
+    setFocusedId,
+    expandedIds,
+    setExpandedIds,
+    onSelectFile: handleSelectFile,
+  })
+
+  // Build the breadcrumb path for the selected file
   const breadcrumb = selectedFile
     ? findPath(data, selectedFile.id) || []
     : []
@@ -72,48 +118,41 @@ function App() {
   return (
     <div className="app">
 
-      {/* Top bar — logo + search */}
       <AppHeader
         searchQuery={searchQuery}
         onSearch={handleSearch}
       />
 
-      {/* Main content area — tree on left, properties on right */}
       <div className="app__body">
 
-        {/* Left sidebar — the file tree */}
         <div className="app__sidebar">
-
-          {/* "SecureVault" root label above the tree */}
           <div className="app__sidebar-label">SecureVault</div>
-
-          {/* The recursive tree — receives data and all handlers */}
           <TreeView
             data={data}
             selectedId={selectedFile?.id}
+            focusedId={focusedId}
             onSelectFile={handleSelectFile}
             searchQuery={searchQuery}
+            expandedIds={expandedIds}
+            setExpandedIds={setExpandedIds}
           />
-
         </div>
 
-        {/* Right panel — file properties + breadcrumb */}
         <div className="app__panel">
 
-          {/* Breadcrumb trail — the wildcard feature.
-              Shows the full path to the selected file at the top of the panel.
-              Each segment is clickable in the design but here it shows the path. */}
+          {/* Breadcrumb trail — wildcard feature.
+              Each segment except the last is clickable.
+              Clicking a folder segment scrolls the tree to that folder —
+              for now it just highlights the path visually. */}
           {breadcrumb.length > 0 && (
             <div className="app__breadcrumb">
               {breadcrumb.map((segment, index) => (
                 <span key={index} className="app__breadcrumb-item">
-                  {/* Show a separator before every segment except the first */}
                   {index > 0 && (
                     <span className="app__breadcrumb-sep">/</span>
                   )}
                   <span
                     className={
-                      // Last segment is the file itself — style it differently
                       index === breadcrumb.length - 1
                         ? 'app__breadcrumb-seg app__breadcrumb-seg--active'
                         : 'app__breadcrumb-seg'
@@ -126,7 +165,6 @@ function App() {
             </div>
           )}
 
-          {/* Properties panel — shows file details or empty state */}
           <PropertiesPanel
             selectedFile={selectedFile}
             breadcrumb={breadcrumb}

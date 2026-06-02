@@ -6,16 +6,17 @@
 .tree-node {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 5px 10px;
   border-radius: 5px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   color: var(--text-secondary);
   cursor: pointer;
   border: 1.5px solid transparent;
   transition: background 0.1s ease;
   user-select: none;
+  min-width: 0;
 }
 
 .tree-node:hover {
@@ -33,24 +34,33 @@
   background: var(--bg-selected);
 }
 
+.tree-node--focused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2);
+}
+
+/* Name takes up all available space and truncates if too long */
 .tree-node__name {
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
+/* Size sits on the far right with a guaranteed gap */
 .tree-node__size {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
   flex-shrink: 0;
-  margin-left: auto;
+  padding-left: 12px;
+  white-space: nowrap;
 }
 
 .tree-node__empty {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-style: italic;
 }
 

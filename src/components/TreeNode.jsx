@@ -1,36 +1,34 @@
-import { useState } from 'react'
 import './TreeNode.css'
 
-// I'm pulling the file extension out of the filename directly
-// instead of adding an extra field to the JSON — keeps the data clean
-// Example: "report.pdf" → "pdf"
+// Same helper functions as before
+// If the filename starts with a dot (like .gitignore),
+// it has no real extension — treat the whole name as the type.
+// Otherwise pull the extension from after the last dot.
 function getExtension(name) {
-  return name.split('.').pop().toLowerCase()
+  if (name.startsWith('.') && name.lastIndexOf('.') === 0) {
+    return name.slice(1).toLowerCase() // ".gitignore" → "gitignore"
+  }
+  const parts = name.split('.')
+  if (parts.length === 1) return '' // no extension at all
+  return parts.pop().toLowerCase()
 }
 
-// Each file extension maps to a colour from our design system.
-// This is what drives the icon tint and the type label in the Properties panel.
 function getFileColour(extension) {
   const map = {
-    pdf:  'var(--danger)',    // red
-    docx: 'var(--accent)',    // blue
-    doc:  'var(--accent)',    // blue
-    png:  'var(--warning)',   // orange
-    jpg:  'var(--warning)',   // orange
-    svg:  'var(--warning)',   // orange
-    xlsx: 'var(--success)',   // green
-    xls:  'var(--success)',   // green
+    pdf:  'var(--danger)',
+    docx: 'var(--accent)',
+    doc:  'var(--accent)',
+    png:  'var(--warning)',
+    jpg:  'var(--warning)',
+    svg:  'var(--warning)',
+    xlsx: 'var(--success)',
+    xls:  'var(--success)',
     txt:  'var(--text-muted)',
     yaml: 'var(--text-muted)',
     ttf:  'var(--text-muted)',
   }
-  // Unknown extensions fall back to grey
   return map[extension] || 'var(--text-muted)'
 }
-
-// ─── ICONS ────────────────────────────────────────────────────────────────────
-// Building these as small SVG components instead of importing an icon library
-// — the brief says no external component libraries, so I rolled my own.
 
 function FolderIcon({ colour }) {
   return (
@@ -79,7 +77,6 @@ function ChevronIcon({ isOpen }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{
-        // Rotating the chevron is cheaper than swapping between two icons
         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
         transition: 'transform 0.15s ease',
         flexShrink: 0,
@@ -91,66 +88,75 @@ function ChevronIcon({ isOpen }) {
 }
 
 // ─── TREE NODE ────────────────────────────────────────────────────────────────
-// This is the main recursive component — the heart of the whole project.
+// The big change here: isOpen is no longer local state.
+// Instead, the component receives expandedIds (a Set of open folder ids)
+// from App, and checks whether its own id is in that Set.
+// This lets the keyboard hook control open/closed state from outside.
 //
-// The idea: a TreeNode renders one node from the data.
-// If that node is a folder, it renders its children as more TreeNodes.
-// Those children do the same thing. That's the recursion.
-// It doesn't matter if the tree is 2 levels deep or 20 — it just works.
-//
-// Props:
-//   node          — the current node object from data.json
-//   selectedId    — id of the selected file, lives in App state
-//   onSelectFile  — fires when a file is clicked, updates App state
-//   depth         — tracks how deep we are, controls indentation
-//   searchQuery   — current search string, used for auto-expanding folders
+// New props:
+//   expandedIds    — Set of folder ids that are currently open (lives in App)
+//   setExpandedIds — function to update that Set (lives in App)
+//   focusedId      — id of the keyboard-focused node (lives in App)
 
-function TreeNode({ node, selectedId, onSelectFile, depth = 0, searchQuery }) {
+function TreeNode({
+  node,
+  selectedId,
+  focusedId,
+  onSelectFile,
+  depth = 0,
+  searchQuery,
+  expandedIds,
+  setExpandedIds,
+}) {
 
-  // isOpen tracks whether this specific folder is expanded or collapsed.
-  // Each TreeNode manages its own open/closed state independently.
-  const [isOpen, setIsOpen] = useState(false)
-
-  // Every level of depth adds 20px of left padding.
-  // This is how the visual hierarchy is created without any extra logic.
   const indentStyle = { paddingLeft: `${depth * 20}px` }
 
-
-  // ── FOLDER ────────────────────────────────────────────────────────────────
+  // ── FOLDER ──────────────────────────────────────────────────────────────────
   if (node.type === 'folder') {
 
-    // For the search feature — I need to check if any file inside this folder
-    // (or any of its subfolders) matches the search query.
-    // If yes, I force this folder open so the matching file is visible.
-    const hasMatchingDescendant = (node) => {
+    // Check if this folder's id is in the expandedIds Set
+    // This replaces the old local isOpen state
+    const isOpen = expandedIds.has(node.id)
+
+    // Same search auto-expand logic as before
+    const hasMatchingDescendant = (n) => {
       if (!searchQuery) return false
-      return node.children?.some(child => {
+      return n.children?.some(child => {
         if (child.type === 'file') {
           return child.name.toLowerCase().includes(searchQuery.toLowerCase())
         }
-        // Keep checking deeper if the child is also a folder
         return hasMatchingDescendant(child)
       })
     }
 
-    // The folder shows as open if the user clicked it,
-    // OR if search found a match inside it
     const isExpanded = isOpen || hasMatchingDescendant(node)
+
+    // Toggle this folder's id in the expandedIds Set
+    const handleToggle = () => {
+      setExpandedIds(prev => {
+        const next = new Set(prev)
+        if (next.has(node.id)) {
+          next.delete(node.id)
+        } else {
+          next.add(node.id)
+        }
+        return next
+      })
+    }
+
+    // Is this node currently focused by the keyboard?
+    const isFocused = node.id === focusedId
 
     return (
       <div className="tree-node-wrapper">
-
-        {/* Clickable folder row */}
         <div
-          className="tree-node tree-node--folder"
+          className={`tree-node tree-node--folder ${isFocused ? 'tree-node--focused' : ''}`}
           style={indentStyle}
-          onClick={() => setIsOpen(prev => !prev)}
+          onClick={handleToggle}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setIsOpen(prev => !prev)
-            }
+            if (e.key === 'Enter' || e.key === ' ') handleToggle()
           }}
         >
           <ChevronIcon isOpen={isExpanded} />
@@ -158,9 +164,7 @@ function TreeNode({ node, selectedId, onSelectFile, depth = 0, searchQuery }) {
           <span className="tree-node__name">{node.name}</span>
         </div>
 
-        {/* Only render children when the folder is expanded.
-            Each child is a new TreeNode — this is where the recursion happens.
-            depth + 1 increases the indent for the next level. */}
+        {/* Recursion — each child gets the same expandedIds and setExpandedIds */}
         {isExpanded && node.children && node.children.length > 0 && (
           <div className="tree-node__children">
             {node.children.map(child => (
@@ -168,15 +172,17 @@ function TreeNode({ node, selectedId, onSelectFile, depth = 0, searchQuery }) {
                 key={child.id}
                 node={child}
                 selectedId={selectedId}
+                focusedId={focusedId}
                 onSelectFile={onSelectFile}
                 depth={depth + 1}
                 searchQuery={searchQuery}
+                expandedIds={expandedIds}
+                setExpandedIds={setExpandedIds}
               />
             ))}
           </div>
         )}
 
-        {/* If the folder is open but empty, say so */}
         {isExpanded && node.children && node.children.length === 0 && (
           <div
             className="tree-node__empty"
@@ -185,29 +191,26 @@ function TreeNode({ node, selectedId, onSelectFile, depth = 0, searchQuery }) {
             Empty folder
           </div>
         )}
-
       </div>
     )
   }
 
-
-  // ── FILE ──────────────────────────────────────────────────────────────────
+  // ── FILE ────────────────────────────────────────────────────────────────────
   if (node.type === 'file') {
 
     const extension = getExtension(node.name)
     const fileColour = getFileColour(extension)
 
-    // If search is active and this file doesn't match, hide it.
-    // Returning null tells React to render nothing for this node.
     if (searchQuery && !node.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return null
     }
 
     const isSelected = node.id === selectedId
+    const isFocused = node.id === focusedId
 
     return (
       <div
-        className={`tree-node tree-node--file ${isSelected ? 'tree-node--selected' : ''}`}
+        className={`tree-node tree-node--file ${isSelected ? 'tree-node--selected' : ''} ${isFocused ? 'tree-node--focused' : ''}`}
         style={indentStyle}
         onClick={() => onSelectFile(node)}
         role="button"
@@ -216,14 +219,9 @@ function TreeNode({ node, selectedId, onSelectFile, depth = 0, searchQuery }) {
           if (e.key === 'Enter') onSelectFile(node)
         }}
       >
-        {/* Spacer so the file icon lines up with folder icons */}
         <span style={{ width: '12px', flexShrink: 0 }} />
-
         <FileIcon colour={fileColour} />
-
         <span className="tree-node__name">{node.name}</span>
-
-        {/* Size pushed to the far right */}
         <span className="tree-node__size">{node.size}</span>
       </div>
     )
