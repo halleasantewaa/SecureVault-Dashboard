@@ -2,7 +2,8 @@
 
 A high-performance file explorer UI built for SecureVault Inc. — an enterprise cloud storage platform serving law firms and banks. Built with React, designed from scratch with a custom dark-mode design system.
 
-**Live Demo:** [link here]
+**Live Demo:** https://secure-vault-dashboard-psi.vercel.app
+
 **Design File:** https://www.figma.com/design/g0XFO9Vo4E7agZZ04SNAFp/SecureVault-Challenge---Halle?node-id=45-32&t=Gpk6fNKuU7HapRlz-1
 
 ---
@@ -75,8 +76,11 @@ The core insight is that a folder and a file are the same component with differe
 - If the node is a **folder** — it renders a clickable row, then maps over `node.children` and renders a `TreeNode` for each child. Those children do the same thing. This is the recursion.
 - If the node is a **file** — it renders a leaf row with no children. The recursion stops here.
   TreeNode (folder)
+
   └── TreeNode (folder)
+
   └── TreeNode (file) ← recursion stops
+  
   └── TreeNode (file) ← recursion stops
 
 The component does not need to know how deep it is in the tree. React handles the call stack. This means the component handles 2 levels of depth or 20 levels with identical code.
@@ -120,8 +124,11 @@ A search bar filters the entire tree in real time. Matching items deep inside fo
 
 App
 ├── AppHeader — logo + search bar
+
 ├── TreeView — maps root data array, passes state down
+
 │ └── TreeNode — recursive, renders folders and files
+
 └── PropertiesPanel — selected file metadata + keyboard hints
 
 **Custom hook:** `useKeyboardNavigation` (in `src/hooks/`) handles all keyboard events. It maintains a flat list of visible nodes and moves focus through them on arrow key presses.
