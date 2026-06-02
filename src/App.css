@@ -1,0 +1,83 @@
+/* The app takes up the full viewport height — no scrolling on the outer shell */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+/* Body sits below the header and fills remaining height */
+.app__body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left sidebar — fixed width, scrollable */
+.app__sidebar {
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* "SecureVault" label above the tree */
+.app__sidebar-label {
+  padding: 10px var(--space-4);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+/* Right panel — takes remaining width */
+.app__panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+/* Breadcrumb bar — sits above the properties panel */
+.app__breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.app__breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Breadcrumb separator */
+.app__breadcrumb-sep {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Clickable breadcrumb segments */
+.app__breadcrumb-seg {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* Last segment — the file itself, not clickable */
+.app__breadcrumb-seg--active {
+  color: var(--text-muted);
+  cursor: default;
+}
