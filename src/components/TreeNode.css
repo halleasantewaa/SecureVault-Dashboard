@@ -1,0 +1,60 @@
+.tree-node-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.tree-node:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.tree-node--selected {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+  border-color: rgba(47, 129, 247, 0.35);
+}
+
+.tree-node--selected:hover {
+  background: var(--bg-selected);
+}
+
+.tree-node__name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-node__size {
+  font-size: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.tree-node__empty {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font-style: italic;
+}
+
+.tree-node__children {
+  display: flex;
+  flex-direction: column;
+}
