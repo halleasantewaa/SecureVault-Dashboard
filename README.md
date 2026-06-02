@@ -3,6 +3,7 @@
 A high-performance file explorer UI built for SecureVault Inc. — an enterprise cloud storage platform serving law firms and banks. Built with React, designed from scratch with a custom dark-mode design system.
 
 **Live Demo:** https://secure-vault-dashboard-psi.vercel.app
+
 **Design File:** https://www.figma.com/design/g0XFO9Vo4E7agZZ04SNAFp/SecureVault-Challenge---Halle?node-id=45-32&t=Gpk6fNKuU7HapRlz-1
 
 ---
