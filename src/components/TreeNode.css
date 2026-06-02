@@ -44,7 +44,7 @@
   box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2);
 }
 
-/* File/folder name — takes up all space and truncates if too long */
+/* Name takes up all available space and truncates if too long */
 .tree-node__name {
   flex: 1;
   white-space: nowrap;
@@ -53,7 +53,7 @@
   min-width: 0;
 }
 
-/* File size — right aligned with guaranteed gap from name */
+/* Size sits on the far right with a guaranteed gap */
 .tree-node__size {
   font-size: 13px;
   color: var(--text-muted);
@@ -76,7 +76,7 @@
   flex-direction: column;
 }
 
-/* Search match highlight — orange and bold */
+/* Search match highlight — gold and bold */
 .tree-node__highlight {
   color: var(--warning);
   font-weight: 600;

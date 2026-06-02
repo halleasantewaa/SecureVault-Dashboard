@@ -82,7 +82,6 @@ function ChevronIcon({ isOpen }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{
-        // Rotating is cheaper than swapping between two icons
         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
         transition: 'transform 0.15s ease',
         flexShrink: 0,
@@ -94,9 +93,9 @@ function ChevronIcon({ isOpen }) {
 }
 
 // ─── HIGHLIGHT HELPER ─────────────────────────────────────────────────────────
-// Wraps the matching part of a filename in a highlight span.
-// Example: searching "pdf" in "report.pdf" highlights just "pdf" in orange.
-// We split the name into three parts: before, match, after.
+// Wraps the matching part of a name in a highlight span.
+// Works for both file names and folder names.
+// Example: searching "pdf" in "report.pdf" highlights just "pdf" in gold.
 
 function HighlightedName({ name, searchQuery }) {
   if (!searchQuery) return <span>{name}</span>
@@ -105,9 +104,10 @@ function HighlightedName({ name, searchQuery }) {
   const lowerQuery = searchQuery.toLowerCase()
   const matchIndex = lowerName.indexOf(lowerQuery)
 
-  // If the query isn't in the name, just show the name normally
+  // If the query isn't in the name, just show the name as-is
   if (matchIndex === -1) return <span>{name}</span>
 
+  // Split into three parts: before the match, the match, after the match
   const before = name.slice(0, matchIndex)
   const match = name.slice(matchIndex, matchIndex + searchQuery.length)
   const after = name.slice(matchIndex + searchQuery.length)
@@ -161,9 +161,8 @@ function TreeNode({
     // This replaced local isOpen state so the keyboard hook can control it.
     const isOpen = expandedIds.has(node.id)
 
-    // For the search feature — check if any file inside this folder
-    // matches the search query. If yes, force this folder open
-    // so the matching file is visible.
+    // Check if any descendant file matches the search query.
+    // If yes, we force this folder open so the match is visible.
     const hasMatchingDescendant = (n) => {
       if (!searchQuery) return false
       return n.children?.some(child => {
@@ -174,10 +173,21 @@ function TreeNode({
       })
     }
 
-    // Folder shows as open if manually clicked OR search found a match inside
+    // Check if this folder's own name matches the search query
+    const folderNameMatches = searchQuery &&
+      node.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+    // If search is active, hide this folder completely if:
+    // — its own name doesn't match AND
+    // — none of its descendants match
+    if (searchQuery && !folderNameMatches && !hasMatchingDescendant(node)) {
+      return null
+    }
+
+    // Show as expanded if manually opened OR if a descendant matches search
     const isExpanded = isOpen || hasMatchingDescendant(node)
 
-    // Toggle this folder open or closed
+    // Toggle this folder open or closed in the expandedIds Set
     const handleToggle = () => {
       setExpandedIds(prev => {
         const next = new Set(prev)
@@ -208,7 +218,11 @@ function TreeNode({
         >
           <ChevronIcon isOpen={isExpanded} />
           <FolderIcon colour="#E3B341" />
-          <span className="tree-node__name">{node.name}</span>
+
+          {/* Highlight folder name if it matches the search query */}
+          <span className="tree-node__name">
+            <HighlightedName name={node.name} searchQuery={searchQuery} />
+          </span>
         </div>
 
         {/* Only render children when expanded.
@@ -232,7 +246,7 @@ function TreeNode({
           </div>
         )}
 
-        {/* If the folder is open but has no children, say so */}
+        {/* If the folder is open but empty, say so */}
         {isExpanded && node.children && node.children.length === 0 && (
           <div
             className="tree-node__empty"
@@ -272,12 +286,12 @@ function TreeNode({
           if (e.key === 'Enter') onSelectFile(node)
         }}
       >
-        {/* Spacer so the file icon lines up with folder icons */}
+        {/* Spacer so file icon lines up with folder icons */}
         <span style={{ width: '12px', flexShrink: 0 }} />
 
         <FileIcon colour={fileColour} />
 
-        {/* HighlightedName wraps the matching search text in orange */}
+        {/* Highlight matching part of filename in gold */}
         <span className="tree-node__name">
           <HighlightedName name={node.name} searchQuery={searchQuery} />
         </span>
