@@ -68,3 +68,9 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Highlighted search match text in filename */
+.tree-node__highlight {
+  color: var(--warning);
+  font-weight: 600;
+}

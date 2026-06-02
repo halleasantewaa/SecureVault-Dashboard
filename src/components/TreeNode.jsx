@@ -161,7 +161,32 @@ function TreeNode({
         >
           <ChevronIcon isOpen={isExpanded} />
           <FolderIcon colour="#E3B341" />
-          <span className="tree-node__name">{node.name}</span>
+          {/* If search is active, highlight the matching part of the filename.
+    We split the name around the matching text and wrap the match
+    in a highlight span. */}
+<span className="tree-node__name">
+  {searchQuery ? (() => {
+    const lowerName = node.name.toLowerCase()
+    const lowerQuery = searchQuery.toLowerCase()
+    const matchIndex = lowerName.indexOf(lowerQuery)
+
+    // If no match found, just show the name normally
+    if (matchIndex === -1) return node.name
+
+    // Split into three parts: before, match, after
+    const before = node.name.slice(0, matchIndex)
+    const match = node.name.slice(matchIndex, matchIndex + searchQuery.length)
+    const after = node.name.slice(matchIndex + searchQuery.length)
+
+    return (
+      <>
+        {before}
+        <span className="tree-node__highlight">{match}</span>
+        {after}
+      </>
+    )
+  })() : node.name}
+</span>
         </div>
 
         {/* Recursion — each child gets the same expandedIds and setExpandedIds */}
