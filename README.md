@@ -121,8 +121,11 @@ A search bar filters the entire tree in real time. Matching items deep inside fo
 
 App
 ├── AppHeader — logo + search bar
+
 ├── TreeView — maps root data array, passes state down
+
 │ └── TreeNode — recursive, renders folders and files
+
 └── PropertiesPanel — selected file metadata + keyboard hints
 
 **Custom hook:** `useKeyboardNavigation` (in `src/hooks/`) handles all keyboard events. It maintains a flat list of visible nodes and moves focus through them on arrow key presses.
