@@ -1,18 +1,19 @@
 import './TreeNode.css'
 
-// Same helper functions as before
-// If the filename starts with a dot (like .gitignore),
-// it has no real extension — treat the whole name as the type.
-// Otherwise pull the extension from after the last dot.
+// Pulling extension from the filename directly instead of
+// adding an extra field to the JSON — keeps the data clean.
+// Handles dotfiles like .gitignore too.
 function getExtension(name) {
   if (name.startsWith('.') && name.lastIndexOf('.') === 0) {
-    return name.slice(1).toLowerCase() // ".gitignore" → "gitignore"
+    return name.slice(1).toLowerCase()
   }
   const parts = name.split('.')
-  if (parts.length === 1) return '' // no extension at all
+  if (parts.length === 1) return ''
   return parts.pop().toLowerCase()
 }
 
+// Each extension maps to a colour from our design system.
+// This drives the icon tint and the type label in the Properties panel.
 function getFileColour(extension) {
   const map = {
     pdf:  'var(--danger)',
@@ -29,6 +30,10 @@ function getFileColour(extension) {
   }
   return map[extension] || 'var(--text-muted)'
 }
+
+// ─── ICONS ────────────────────────────────────────────────────────────────────
+// Built as inline SVGs — no icon library needed.
+// The brief says no external component libraries, so I rolled my own.
 
 function FolderIcon({ colour }) {
   return (
@@ -77,6 +82,7 @@ function ChevronIcon({ isOpen }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{
+        // Rotating is cheaper than swapping between two icons
         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
         transition: 'transform 0.15s ease',
         flexShrink: 0,
@@ -87,16 +93,51 @@ function ChevronIcon({ isOpen }) {
   )
 }
 
+// ─── HIGHLIGHT HELPER ─────────────────────────────────────────────────────────
+// Wraps the matching part of a filename in a highlight span.
+// Example: searching "pdf" in "report.pdf" highlights just "pdf" in orange.
+// We split the name into three parts: before, match, after.
+
+function HighlightedName({ name, searchQuery }) {
+  if (!searchQuery) return <span>{name}</span>
+
+  const lowerName = name.toLowerCase()
+  const lowerQuery = searchQuery.toLowerCase()
+  const matchIndex = lowerName.indexOf(lowerQuery)
+
+  // If the query isn't in the name, just show the name normally
+  if (matchIndex === -1) return <span>{name}</span>
+
+  const before = name.slice(0, matchIndex)
+  const match = name.slice(matchIndex, matchIndex + searchQuery.length)
+  const after = name.slice(matchIndex + searchQuery.length)
+
+  return (
+    <span>
+      {before}
+      <span className="tree-node__highlight">{match}</span>
+      {after}
+    </span>
+  )
+}
+
 // ─── TREE NODE ────────────────────────────────────────────────────────────────
-// The big change here: isOpen is no longer local state.
-// Instead, the component receives expandedIds (a Set of open folder ids)
-// from App, and checks whether its own id is in that Set.
-// This lets the keyboard hook control open/closed state from outside.
+// The core recursive component — the heart of the whole project.
 //
-// New props:
-//   expandedIds    — Set of folder ids that are currently open (lives in App)
-//   setExpandedIds — function to update that Set (lives in App)
-//   focusedId      — id of the keyboard-focused node (lives in App)
+// A TreeNode renders one node from the data.
+// If that node is a folder, it renders its children as more TreeNodes.
+// Those children do the same thing. That's the recursion.
+// It doesn't matter if the tree is 2 levels deep or 20 — it just works.
+//
+// Props:
+//   node           — the current node object from data.json
+//   selectedId     — id of the selected file, lives in App state
+//   focusedId      — id of the keyboard focused node, lives in App state
+//   onSelectFile   — fires when a file is clicked, updates App state
+//   depth          — tracks how deep we are, controls indentation
+//   searchQuery    — current search string, used for highlight + auto-expand
+//   expandedIds    — Set of folder ids that are open, lives in App state
+//   setExpandedIds — updates which folders are open
 
 function TreeNode({
   node,
@@ -109,16 +150,20 @@ function TreeNode({
   setExpandedIds,
 }) {
 
+  // Every level of depth adds 20px of left padding.
+  // This is how the visual hierarchy is created without any extra logic.
   const indentStyle = { paddingLeft: `${depth * 20}px` }
 
   // ── FOLDER ──────────────────────────────────────────────────────────────────
   if (node.type === 'folder') {
 
-    // Check if this folder's id is in the expandedIds Set
-    // This replaces the old local isOpen state
+    // Check if this folder's id is in the expandedIds Set.
+    // This replaced local isOpen state so the keyboard hook can control it.
     const isOpen = expandedIds.has(node.id)
 
-    // Same search auto-expand logic as before
+    // For the search feature — check if any file inside this folder
+    // matches the search query. If yes, force this folder open
+    // so the matching file is visible.
     const hasMatchingDescendant = (n) => {
       if (!searchQuery) return false
       return n.children?.some(child => {
@@ -129,9 +174,10 @@ function TreeNode({
       })
     }
 
+    // Folder shows as open if manually clicked OR search found a match inside
     const isExpanded = isOpen || hasMatchingDescendant(node)
 
-    // Toggle this folder's id in the expandedIds Set
+    // Toggle this folder open or closed
     const handleToggle = () => {
       setExpandedIds(prev => {
         const next = new Set(prev)
@@ -144,11 +190,12 @@ function TreeNode({
       })
     }
 
-    // Is this node currently focused by the keyboard?
     const isFocused = node.id === focusedId
 
     return (
       <div className="tree-node-wrapper">
+
+        {/* Clickable folder row */}
         <div
           className={`tree-node tree-node--folder ${isFocused ? 'tree-node--focused' : ''}`}
           style={indentStyle}
@@ -161,35 +208,12 @@ function TreeNode({
         >
           <ChevronIcon isOpen={isExpanded} />
           <FolderIcon colour="#E3B341" />
-          {/* If search is active, highlight the matching part of the filename.
-    We split the name around the matching text and wrap the match
-    in a highlight span. */}
-<span className="tree-node__name">
-  {searchQuery ? (() => {
-    const lowerName = node.name.toLowerCase()
-    const lowerQuery = searchQuery.toLowerCase()
-    const matchIndex = lowerName.indexOf(lowerQuery)
-
-    // If no match found, just show the name normally
-    if (matchIndex === -1) return node.name
-
-    // Split into three parts: before, match, after
-    const before = node.name.slice(0, matchIndex)
-    const match = node.name.slice(matchIndex, matchIndex + searchQuery.length)
-    const after = node.name.slice(matchIndex + searchQuery.length)
-
-    return (
-      <>
-        {before}
-        <span className="tree-node__highlight">{match}</span>
-        {after}
-      </>
-    )
-  })() : node.name}
-</span>
+          <span className="tree-node__name">{node.name}</span>
         </div>
 
-        {/* Recursion — each child gets the same expandedIds and setExpandedIds */}
+        {/* Only render children when expanded.
+            Each child is a new TreeNode — this is the recursion.
+            depth + 1 increases the indent for the next level. */}
         {isExpanded && node.children && node.children.length > 0 && (
           <div className="tree-node__children">
             {node.children.map(child => (
@@ -208,6 +232,7 @@ function TreeNode({
           </div>
         )}
 
+        {/* If the folder is open but has no children, say so */}
         {isExpanded && node.children && node.children.length === 0 && (
           <div
             className="tree-node__empty"
@@ -216,6 +241,7 @@ function TreeNode({
             Empty folder
           </div>
         )}
+
       </div>
     )
   }
@@ -226,6 +252,8 @@ function TreeNode({
     const extension = getExtension(node.name)
     const fileColour = getFileColour(extension)
 
+    // If search is active and this file doesn't match, hide it.
+    // Returning null tells React to render nothing for this node.
     if (searchQuery && !node.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return null
     }
@@ -244,9 +272,17 @@ function TreeNode({
           if (e.key === 'Enter') onSelectFile(node)
         }}
       >
+        {/* Spacer so the file icon lines up with folder icons */}
         <span style={{ width: '12px', flexShrink: 0 }} />
+
         <FileIcon colour={fileColour} />
-        <span className="tree-node__name">{node.name}</span>
+
+        {/* HighlightedName wraps the matching search text in orange */}
+        <span className="tree-node__name">
+          <HighlightedName name={node.name} searchQuery={searchQuery} />
+        </span>
+
+        {/* Size pushed to the far right */}
         <span className="tree-node__size">{node.size}</span>
       </div>
     )

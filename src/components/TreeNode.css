@@ -1,8 +1,10 @@
+/* Wrapper around a folder row and all its children */
 .tree-node-wrapper {
   display: flex;
   flex-direction: column;
 }
 
+/* Base row — shared by files and folders */
 .tree-node {
   display: flex;
   align-items: center;
@@ -19,11 +21,13 @@
   min-width: 0;
 }
 
+/* Hover state */
 .tree-node:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
+/* Selected file — blue tinted background */
 .tree-node--selected {
   background: var(--bg-selected);
   color: var(--text-primary);
@@ -34,12 +38,13 @@
   background: var(--bg-selected);
 }
 
+/* Keyboard focused — blue outline ring */
 .tree-node--focused {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2);
 }
 
-/* Name takes up all available space and truncates if too long */
+/* File/folder name — takes up all space and truncates if too long */
 .tree-node__name {
   flex: 1;
   white-space: nowrap;
@@ -48,7 +53,7 @@
   min-width: 0;
 }
 
-/* Size sits on the far right with a guaranteed gap */
+/* File size — right aligned with guaranteed gap from name */
 .tree-node__size {
   font-size: 13px;
   color: var(--text-muted);
@@ -57,6 +62,7 @@
   white-space: nowrap;
 }
 
+/* Empty folder message */
 .tree-node__empty {
   font-size: 13px;
   color: var(--text-muted);
@@ -64,12 +70,13 @@
   font-style: italic;
 }
 
+/* Children container */
 .tree-node__children {
   display: flex;
   flex-direction: column;
 }
 
-/* Highlighted search match text in filename */
+/* Search match highlight — orange and bold */
 .tree-node__highlight {
   color: var(--warning);
   font-weight: 600;
