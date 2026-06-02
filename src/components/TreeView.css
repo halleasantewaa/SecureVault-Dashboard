@@ -1,0 +1,27 @@
+/* TreeView is the scrollable sidebar that holds the entire file tree */
+.tree-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Custom scrollbar to match the dark theme */
+.tree-view::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tree-view::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tree-view::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.tree-view::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
