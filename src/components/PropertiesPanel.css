@@ -152,3 +152,11 @@
   line-height: 1.6;
   word-break: break-all;
 }
+
+/* Keyboard hints when file is selected — sits below the metadata */
+.properties-panel__kbd-hints--bottom {
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  align-items: flex-start;
+}

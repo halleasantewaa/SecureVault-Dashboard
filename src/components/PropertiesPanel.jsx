@@ -1,12 +1,18 @@
 import './PropertiesPanel.css'
 
-// I'm reusing the same getExtension and getFileColour logic from TreeNode.
-// In a bigger project I'd move these to a shared utils file,
-// but for this project keeping it simple is fine.
+// Pulling extension from the filename directly instead of
+// adding an extra field to the JSON — keeps the data clean.
 function getExtension(name) {
-  return name.split('.').pop().toLowerCase()
+  if (name.startsWith('.') && name.lastIndexOf('.') === 0) {
+    return name.slice(1).toLowerCase()
+  }
+  const parts = name.split('.')
+  if (parts.length === 1) return ''
+  return parts.pop().toLowerCase()
 }
 
+// Each extension maps to a colour from our design system.
+// This drives the icon tint and the type label in the Properties panel.
 function getFileColour(extension) {
   const map = {
     pdf:  'var(--danger)',
@@ -24,8 +30,7 @@ function getFileColour(extension) {
   return map[extension] || 'var(--text-muted)'
 }
 
-// A small icon for the file — same as in TreeNode but bigger,
-// since it's displayed prominently at the top of the panel.
+// Bigger file icon for the top of the panel
 function FilePanelIcon({ colour }) {
   return (
     <svg
@@ -44,17 +49,42 @@ function FilePanelIcon({ colour }) {
   )
 }
 
-// PropertiesPanel receives the selected file node and its breadcrumb path.
+// Keyboard hints — reused in both empty and selected states
+// so the user always knows how to navigate
+function KeyboardHints() {
+  return (
+    <div className="properties-panel__kbd-grid">
+      <div className="properties-panel__kbd-row">
+        <span className="kbd">↑</span>
+        <span className="kbd">↓</span>
+        <span className="kbd-label">Move focus</span>
+      </div>
+      <div className="properties-panel__kbd-row">
+        <span className="kbd">→</span>
+        <span className="kbd-label">Expand folder</span>
+      </div>
+      <div className="properties-panel__kbd-row">
+        <span className="kbd">←</span>
+        <span className="kbd-label">Collapse / go up</span>
+      </div>
+      <div className="properties-panel__kbd-row">
+        <span className="kbd">↵</span>
+        <span className="kbd-label">Select file</span>
+      </div>
+    </div>
+  )
+}
+
+// PropertiesPanel receives the selected file and its breadcrumb path.
 // If no file is selected, it shows an empty state with instructions.
 // Props:
-//   selectedFile  — the full node object of the selected file, or null
-//   breadcrumb    — array of folder/file names leading to the selected file
+//   selectedFile — the full node object of the selected file, or null
+//   breadcrumb   — array of names leading to the selected file
 
 function PropertiesPanel({ selectedFile, breadcrumb }) {
 
   // ── EMPTY STATE ────────────────────────────────────────────────────────────
-  // Shown when no file has been selected yet.
-  // Also shows the keyboard shortcuts so users know how to navigate.
+  // Shown when no file has been selected yet
   if (!selectedFile) {
     return (
       <div className="properties-panel properties-panel--empty">
@@ -78,28 +108,10 @@ function PropertiesPanel({ selectedFile, breadcrumb }) {
           Select a file to view its properties
         </p>
 
-        {/* Keyboard navigation hints — Inter Regular 14px as per design system */}
+        {/* Keyboard hints in the empty state */}
         <div className="properties-panel__kbd-hints">
           <p className="properties-panel__kbd-title">Keyboard navigation</p>
-          <div className="properties-panel__kbd-grid">
-            <div className="properties-panel__kbd-row">
-              <span className="kbd">↑</span>
-              <span className="kbd">↓</span>
-              <span className="kbd-label">Move focus</span>
-            </div>
-            <div className="properties-panel__kbd-row">
-              <span className="kbd">→</span>
-              <span className="kbd-label">Expand folder</span>
-            </div>
-            <div className="properties-panel__kbd-row">
-              <span className="kbd">←</span>
-              <span className="kbd-label">Collapse / go up</span>
-            </div>
-            <div className="properties-panel__kbd-row">
-              <span className="kbd">↵</span>
-              <span className="kbd-label">Select file</span>
-            </div>
-          </div>
+          <KeyboardHints />
         </div>
 
       </div>
@@ -113,10 +125,10 @@ function PropertiesPanel({ selectedFile, breadcrumb }) {
   return (
     <div className="properties-panel">
 
-      {/* Panel heading — Inter Medium 16px as per design system */}
+      {/* Panel heading — Inter Medium 16px */}
       <div className="properties-panel__heading">PROPERTIES</div>
 
-      {/* File icon + name at the top */}
+      {/* File icon + name */}
       <div className="properties-panel__file-row">
         <div
           className="properties-panel__file-icon"
@@ -127,7 +139,7 @@ function PropertiesPanel({ selectedFile, breadcrumb }) {
         <span className="properties-panel__file-name">{selectedFile.name}</span>
       </div>
 
-      {/* Metadata rows — Name, Type, Size, Location */}
+      {/* Metadata rows */}
       <div className="properties-panel__meta">
 
         <div className="properties-panel__row">
@@ -145,9 +157,6 @@ function PropertiesPanel({ selectedFile, breadcrumb }) {
           <span className="properties-panel__val">{selectedFile.size}</span>
         </div>
 
-        {/* Breadcrumb path — this is the wildcard feature.
-            It shows the full path to the file so the user always
-            knows exactly where they are in the vault. */}
         <div className="properties-panel__row properties-panel__row--location">
           <span className="properties-panel__key">Location</span>
           <span className="properties-panel__val properties-panel__val--location">
@@ -155,6 +164,13 @@ function PropertiesPanel({ selectedFile, breadcrumb }) {
           </span>
         </div>
 
+      </div>
+
+      {/* Keyboard hints stay visible when a file is selected.
+          The user can always see how to navigate without mousing around. */}
+      <div className="properties-panel__kbd-hints properties-panel__kbd-hints--bottom">
+        <p className="properties-panel__kbd-title">Keyboard navigation</p>
+        <KeyboardHints />
       </div>
 
     </div>
