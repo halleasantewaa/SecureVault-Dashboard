@@ -1,0 +1,38 @@
+/* Header bar spans the full width of the app */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  height: 56px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  /* Stays fixed at the top — content scrolls underneath */
+  flex-shrink: 0;
+}
+
+/* Logo group on the left */
+.app-header__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* The blue rounded square behind the lock icon */
+.app-header__logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* App name */
+.app-header__logo-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
