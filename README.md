@@ -80,7 +80,7 @@ The core insight is that a folder and a file are the same component with differe
   └── TreeNode (folder)
 
   └── TreeNode (file) ← recursion stops
-  
+
   └── TreeNode (file) ← recursion stops
 
 The component does not need to know how deep it is in the tree. React handles the call stack. This means the component handles 2 levels of depth or 20 levels with identical code.
